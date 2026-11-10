@@ -1,0 +1,168 @@
+/* Q8 v6 voice visuals: stylesheet (voice lane). Copied verbatim to dist/q8-voice-visuals.css by build/build.mjs.
+ *
+ * Hosts are supplied by the page:
+ *   #q8-voice-scene  full-bleed host for the original V_CAP radial (behind the workspace)
+ *   #q8-voice-pip    small host beside the microphone control for the original LiveKit Wave
+ * The controller adds the q8vv-* classes and data-* attributes used below; the page never needs to.
+ *
+ * DO NOT clip either visual into a circle (no border-radius on the scene, the canvas or the PiP), and do not
+ * frame them in a boxed card (no border, panel background, card shadow or inset container). The radial is a
+ * full-bleed field; the Wave is a free-floating line with light. v5's `.x-vd__orb canvas { border-radius: 50% }`
+ * must not be carried forward.
+ *
+ * Tokens: --q8vv-purple #A88BFF and --q8vv-orange-red #FB0001 match hai-tokens.css --purple / --orange.
+ * Every colour below is one of those two, black, or an alpha of them.
+ */
+:root {
+  --q8vv-purple: #a88bff;
+  --q8vv-orange-red: #fb0001;
+  --q8vv-light-base: 0.55;     /* fixed decorative illumination (never implies activity) */
+  --q8vv-light-gain: 0.45;     /* added by the measured agent-output level (0..1) while the guide speaks */
+  --q8vv-pip-w: 168px;
+  --q8vv-pip-h: 56px;
+}
+
+/* ---------- Full-bleed radial scene ---------- */
+/* No-JS / pre-mount fallback: the page marks its host data-q8vv-host="scene". It shows black plus the same
+   static purple -> #FB0001 light, never a fake frame. (The handoff's radial-preview.webp is rendered in the
+   Spectrum palette, green/blue, so it is deliberately NOT used as a poster.) */
+[data-q8vv-host="scene"] {
+  background:
+    radial-gradient(58% 46% at 50% 44%, rgba(168, 139, 255, 0.07), rgba(168, 139, 255, 0) 70%),
+    radial-gradient(34% 28% at 63% 58%, rgba(251, 0, 1, 0.04), rgba(251, 0, 1, 0) 72%),
+    #000;
+}
+.q8vv-scene {
+  position: absolute;          /* the page decides: absolute in a positioned workspace, or fixed to the viewport */
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;        /* the workspace above stays fully interactive */
+  background: #000;
+  contain: layout paint;
+  isolation: isolate;
+  --q8vv-output: 0;
+}
+.q8vv-scene__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* Named illumination adapter: controlled purple -> #FB0001 light outside the canvas. Static base, plus the
+   measured agent-output level only (the controller writes --q8vv-output; it is 0 unless the guide speaks). */
+.q8vv-scene__light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: calc(var(--q8vv-light-base) + var(--q8vv-output) * var(--q8vv-light-gain));
+  background:
+    radial-gradient(58% 46% at 50% 44%, rgba(168, 139, 255, 0.13), rgba(168, 139, 255, 0) 70%),
+    radial-gradient(34% 28% at 63% 58%, rgba(251, 0, 1, 0.075), rgba(251, 0, 1, 0) 72%),
+    linear-gradient(105deg, rgba(168, 139, 255, 0.05) 12%, rgba(251, 0, 1, 0.04) 96%);
+  transition: opacity 160ms linear;
+}
+/* Optional readability scrims for text set over the scene (opt-in: data-shade on the host). Edge fades only,
+   never a frame. */
+.q8vv-scene[data-shade~="left"]::after,
+.q8vv-scene[data-shade~="bottom"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.q8vv-scene[data-shade~="left"]::after { background: linear-gradient(90deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.42) 34%, rgba(0, 0, 0, 0) 62%); }
+.q8vv-scene[data-shade~="bottom"]::before { background: linear-gradient(0deg, #000 0%, rgba(0, 0, 0, 0) 26%); }
+
+/* ---------- Small user-microphone PiP (original LiveKit Wave) ---------- */
+.q8vv-pip {
+  position: relative;
+  /* Never squeezed by a flex/grid parent: the Wave keeps its intended width (the 390 px preview showed the
+     168 px host compressed to ~50 CSS px when it was allowed to shrink). */
+  flex: 0 0 auto;
+  width: var(--q8vv-pip-w);
+  min-width: var(--q8vv-pip-w);
+  max-width: none;
+  height: var(--q8vv-pip-h);
+  min-height: var(--q8vv-pip-h);
+  pointer-events: none;
+  overflow: visible;           /* the glow may spill softly; no box, no radius, no background */
+  --q8vv-input: 0;
+  transition: opacity 220ms ease;
+}
+.q8vv-pip[data-mode="off"] { opacity: 0; }
+/* Under-light: purple -> #FB0001 glow whose strength is the measured user-input level (0 when silent/muted). */
+.q8vv-pip::before {
+  content: "";
+  position: absolute;
+  inset: -55% -18%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(168, 139, 255, 0.34), rgba(251, 0, 1, 0.16) 58%, rgba(251, 0, 1, 0) 100%);
+  filter: blur(10px);
+  opacity: calc(var(--q8vv-input) * 0.95);
+  transition: opacity 110ms linear;
+}
+.q8vv-pip__live,
+.q8vv-pip__guard,
+.q8vv-pip__stack,
+.q8vv-pip__ink,
+.q8vv-pip .q8vv-wave {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* The component emits Tailwind size classes (aspect-square, h-[56px]); Tailwind is absent, so they are inert
+   and these rules size it to the host instead. */
+.q8vv-pip .q8vv-wave { aspect-ratio: auto; }
+.q8vv-pip__stack {
+  isolation: isolate;
+  filter: drop-shadow(0 0 3px rgba(168, 139, 255, 0.55)) drop-shadow(0 0 9px rgba(251, 0, 1, 0.3));
+}
+/* Gradient ink: two original instances, crossfaded with the heading-gradient stops (12% / 96%). */
+.q8vv-pip__ink--start {
+  -webkit-mask-image: linear-gradient(90deg, #000 12%, transparent 96%);
+  mask-image: linear-gradient(90deg, #000 12%, transparent 96%);
+}
+.q8vv-pip__ink--end {
+  -webkit-mask-image: linear-gradient(90deg, transparent 12%, #000 96%);
+  mask-image: linear-gradient(90deg, transparent 12%, #000 96%);
+  mix-blend-mode: screen;
+}
+.q8vv-pip[data-ink="purple"] .q8vv-pip__stack { filter: drop-shadow(0 0 3px rgba(168, 139, 255, 0.6)) drop-shadow(0 0 10px rgba(168, 139, 255, 0.28)); }
+
+/* Named Tailwind utility adapter: exactly the edge-fade class the original component emits
+   (agent-audio-visualizer-wave.tsx:369). Without Tailwind it would be inert. */
+[class~="mask-[linear-gradient(90deg,transparent_0%,black_20%,black_80%,transparent_100%)]"] {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 20%, black 80%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, black 20%, black 80%, transparent 100%);
+}
+
+/* Still frame (reduced motion, muted, paused): a composite of the source canvases, given the same edge fade
+   and glow the live layers have. */
+.q8vv-pip__still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 20%, black 80%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, black 20%, black 80%, transparent 100%);
+  filter: drop-shadow(0 0 3px rgba(168, 139, 255, 0.55)) drop-shadow(0 0 9px rgba(251, 0, 1, 0.3));
+}
+.q8vv-pip__still[hidden] { display: none; }
+.q8vv-pip[data-muted="true"] .q8vv-pip__still { opacity: 0.55; }
+
+@media (prefers-reduced-motion: reduce) {
+  .q8vv-scene__light,
+  .q8vv-pip,
+  .q8vv-pip::before { transition: none; }
+  /* Live input is still shown truthfully, as a discrete glow (no easing) on the static flat line. */
+  .q8vv-pip::before { opacity: 0; }
+  .q8vv-pip[data-input="active"]::before { opacity: 0.6; }
+}
+@media (forced-colors: active) {
+  .q8vv-scene__light,
+  .q8vv-pip::before { display: none; }
+}

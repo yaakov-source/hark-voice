@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Hark Voice</title>
+  <meta name="description" content="Talk to Hark." />
+  <meta name="theme-color" content="#000000" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Hark" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <link rel="stylesheet" href="q8-voice-visuals.css" />
+  <link rel="stylesheet" href="hark.css" />
+</head>
+<body>
+  <main class="stage" id="stage" data-state="idle" data-speaking="false" data-muted="false" data-sheet="closed">
+    <!-- Full-bleed radial: agent output only (or a voice take while previewing). No clip, no card. -->
+    <div class="stage__radial" aria-hidden="true">
+      <div id="q8-voice-scene" data-q8vv-host="scene" data-shade="left bottom" aria-hidden="true"></div>
+    </div>
+
+    <header class="top">
+      <p class="brand"><span class="brand__word">Hark</span><span class="brand__sub">Voice</span></p>
+      <button type="button" class="chip" id="voicesOpen" aria-controls="voicesSheet" aria-expanded="false">Voices</button>
+    </header>
+
+    <section class="console" id="voiceUI" aria-label="Voice call with Hark">
+      <p class="line line--agent" aria-live="polite"><span class="line__k">Hark</span><span class="line__sep" aria-hidden="true">·</span><span id="statusText">Ready when you are</span></p>
+      <p class="line line--you" id="inputLine" data-input="off"><span class="line__k">You</span><span class="line__sep" aria-hidden="true">·</span><span id="inputText">Mic off</span></p>
+      <p class="line line--gpu" id="gpuNote" role="note" hidden></p>
+
+      <div class="controls">
+        <button type="button" class="talk" id="talkBtn" disabled data-needs-js>
+          <span class="talk__dot" aria-hidden="true"></span><span id="talkLabel">Talk to Hark</span>
+        </button>
+        <button type="button" class="round" id="muteBtn" aria-pressed="false" aria-label="Mute microphone" disabled>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" class="ic ic--mic"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" class="ic ic--muted"><path d="M9 6.2V12a3 3 0 0 0 4.9 2.3M15 10.5V6a3 3 0 0 0-5.6-1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 11.5a6.5 6.5 0 0 0 10.6 5M18.4 13a6.5 6.5 0 0 0 .1-1.5M12 18v3M4 4l16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <span class="pipdock" role="img" aria-label="Your microphone level"><span id="q8-voice-pip"></span><span class="pipdock__label" aria-hidden="true">You</span></span>
+      </div>
+      <p class="fine" id="micHelp" hidden>Mic blocked? Allow the microphone for this site in Settings, then tap Talk to Hark again.</p>
+    </section>
+
+    <footer class="foot">
+      <a href="notices.html">Notices</a>
+    </footer>
+
+    <!-- Secondary sheet: the six audition takes. -->
+    <div class="scrim" id="sheetScrim" hidden></div>
+    <section class="sheet" id="voicesSheet" role="dialog" aria-modal="false" aria-labelledby="voicesTitle" hidden>
+      <div class="sheet__head">
+        <h2 id="voicesTitle">Voices</h2>
+        <button type="button" class="chip" id="voicesClose">Done</button>
+      </div>
+      <p class="sheet__note" id="voicesNote">The six audition takes. Tap one to hear it through the visual.</p>
+      <ul class="takes" id="takes">
+        <li><button type="button" class="take" data-src="hark-her-3.mp3" data-name="Her 3"><span class="take__name">Her 3</span><span class="take__tag">Live voice</span><span class="take__state" aria-hidden="true"></span></button></li>
+        <li><button type="button" class="take" data-src="hark-her-1.mp3" data-name="Her 1"><span class="take__name">Her 1</span><span class="take__tag"></span><span class="take__state" aria-hidden="true"></span></button></li>
+        <li><button type="button" class="take" data-src="hark-her-2.mp3" data-name="Her 2"><span class="take__name">Her 2</span><span class="take__tag"></span><span class="take__state" aria-hidden="true"></span></button></li>
+        <li><button type="button" class="take" data-src="hark-him-1.mp3" data-name="Him 1"><span class="take__name">Him 1</span><span class="take__tag"></span><span class="take__state" aria-hidden="true"></span></button></li>
+        <li><button type="button" class="take" data-src="hark-him-2.mp3" data-name="Him 2"><span class="take__name">Him 2</span><span class="take__tag"></span><span class="take__state" aria-hidden="true"></span></button></li>
+        <li><button type="button" class="take" data-src="hark-him-3.mp3" data-name="Him 3"><span class="take__name">Him 3</span><span class="take__tag"></span><span class="take__state" aria-hidden="true"></span></button></li>
+      </ul>
+      <audio id="takeAudio" preload="none" playsinline></audio>
+    </section>
+  </main>
+
+  <script src="elevenlabs-client-1.35.0.iife.js" defer></script>
+  <script src="q8-voice-visuals.js" defer></script>
+  <script src="hark-voice.js" defer></script>
+</body>
+</html>

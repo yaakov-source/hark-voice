@@ -1,0 +1,202 @@
+/* Hark Voice: page layer. Loaded after modules/voice/q8-voice-visuals.css (never edited).
+   The radial is a full-bleed field: no circle clip, no boxed card. Text sits on scrims with a soft shadow. */
+:root {
+  color-scheme: dark;
+  --ink: #f3f1ee;
+  --muted: #a5a3ad;
+  --line: rgba(243, 241, 238, 0.14);
+  --cyan: #46e8f0;
+  --amber: #f6b866;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Inter, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sa-t: env(safe-area-inset-top, 0px);
+  --sa-r: env(safe-area-inset-right, 0px);
+  --sa-b: env(safe-area-inset-bottom, 0px);
+  --sa-l: env(safe-area-inset-left, 0px);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: #000; color: var(--ink); }
+body {
+  font: 400 16px/1.45 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  overflow: hidden;
+}
+button { font: inherit; color: inherit; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+a { color: inherit; }
+
+/* ---------- Stage ---------- */
+.stage {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  min-height: 100svh;
+  overflow: hidden;
+  background: #000;
+}
+.stage__radial { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+#q8-voice-scene { position: absolute; inset: 0; }
+.stage > :not(.stage__radial) { position: relative; z-index: 1; }
+
+/* ---------- Header ---------- */
+.top {
+  position: absolute !important;
+  top: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(14px + var(--sa-t)) calc(18px + var(--sa-r)) 0 calc(20px + var(--sa-l));
+  text-shadow: 0 2px 18px #000;
+}
+.brand { margin: 0; display: flex; align-items: baseline; gap: 10px; }
+.brand__word { font-weight: 600; font-size: 21px; letter-spacing: -0.01em; }
+.brand__sub { font: 500 11px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.chip {
+  min-height: 40px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--line); background: rgba(10, 10, 12, 0.42);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  font-size: 14px; font-weight: 500; letter-spacing: 0.01em; cursor: pointer;
+}
+.chip:focus-visible, .talk:focus-visible, .round:focus-visible, .take:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+/* ---------- Console: center-bottom ---------- */
+.console {
+  position: absolute !important;
+  left: 0; right: 0;
+  bottom: calc(48px + var(--sa-b));
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 calc(18px + var(--sa-r)) 0 calc(18px + var(--sa-l));
+  text-align: center;
+}
+.line { margin: 0; max-width: 34ch; text-shadow: 0 2px 18px #000; }
+.line--agent { font-size: 19px; line-height: 28px; font-weight: 500; min-height: 28px; letter-spacing: -0.005em; }
+.line--you { margin-top: 4px; font-size: 14px; line-height: 20px; color: var(--muted); min-height: 20px; }
+.line__k { font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.line--agent .line__k { color: var(--ink); opacity: 0.72; }
+.line__sep { margin: 0 8px; opacity: 0.5; }
+.line--you[data-input="listening"] #inputText { color: var(--ink); }
+.line--you[data-input="muted"] #inputText { color: var(--amber); }
+.line--gpu { margin-top: 8px; font-size: 13px; line-height: 18px; color: var(--muted); max-width: 40ch; }
+.fine { margin: 12px 0 0; font-size: 13px; color: var(--muted); max-width: 38ch; text-shadow: 0 2px 18px #000; }
+
+.controls {
+  margin-top: 22px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 14px 14px;
+}
+.talk {
+  min-height: 58px; min-width: 200px; padding: 0 28px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+  border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--ink); color: #050506;
+  font-size: 17px; font-weight: 600; letter-spacing: -0.005em;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.12s ease;
+}
+.talk:active { transform: scale(0.98); }
+.talk:disabled { opacity: 0.55; cursor: default; }
+.talk__dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--cyan), var(--amber)); }
+.stage[data-state="connecting"] .talk,
+.stage[data-state="listening"] .talk,
+.stage[data-state="speaking"] .talk { background: rgba(20, 20, 22, 0.55); color: var(--ink); border: 1px solid rgba(255, 120, 110, 0.55); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.stage[data-state="connecting"] .talk__dot,
+.stage[data-state="listening"] .talk__dot,
+.stage[data-state="speaking"] .talk__dot { background: #ff6f64; border-radius: 2px; }
+
+.round {
+  width: 54px; height: 54px; border-radius: 50%;
+  display: inline-grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--line); background: rgba(10, 10, 12, 0.42);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.round:disabled { opacity: 0.4; cursor: default; }
+.round .ic--muted { display: none; }
+.round[aria-pressed="true"] { border-color: rgba(246, 184, 102, 0.7); color: var(--amber); }
+.round[aria-pressed="true"] .ic--mic { display: none; }
+.round[aria-pressed="true"] .ic--muted { display: block; }
+
+/* Wave PiP dock: one unit with the controls. Never clipped, never boxed. */
+.pipdock { display: inline-flex; align-items: center; gap: 8px; padding-left: 12px; border-left: 1px solid var(--line); }
+.pipdock__label { font: 500 10.5px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+#q8-voice-pip { --q8vv-pip-w: 168px; --q8vv-pip-h: 56px; flex: 0 0 auto; min-width: 168px; }
+
+/* ---------- Footer ---------- */
+.foot {
+  position: absolute !important;
+  left: 0; right: 0; bottom: 0;
+  padding: 0 0 calc(12px + var(--sa-b));
+  text-align: center; font-size: 12px; color: var(--muted);
+  text-shadow: 0 2px 18px #000;
+}
+.foot a { text-decoration: none; opacity: 0.8; padding: 6px 8px; }
+.foot a:hover { text-decoration: underline; }
+
+/* ---------- Voices sheet ---------- */
+.scrim { position: absolute !important; inset: 0; z-index: 4 !important; background: rgba(0, 0, 0, 0.35); }
+.sheet {
+  position: absolute !important; z-index: 5 !important;
+  right: calc(16px + var(--sa-r)); top: calc(66px + var(--sa-t));
+  width: min(360px, calc(100% - 32px));
+  padding: 18px 18px 14px;
+  border-radius: 22px;
+  background: rgba(12, 12, 14, 0.72);
+  border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+.sheet__head { display: flex; align-items: center; justify-content: space-between; }
+.sheet__head h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.sheet__note { margin: 6px 0 12px; font-size: 13px; color: var(--muted); }
+.takes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.take {
+  width: 100%; min-height: 50px; padding: 0 14px;
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px;
+  border-radius: 14px; border: 1px solid transparent; background: rgba(255, 255, 255, 0.04);
+  text-align: left; cursor: pointer;
+}
+.take:disabled { opacity: 0.4; cursor: default; }
+.take__name { font-weight: 550; font-size: 15px; }
+.take__tag { font: 500 10.5px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan); }
+.take__state { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); position: relative; }
+.take__state::before { content: ""; position: absolute; left: 10px; top: 8px; border-left: 8px solid var(--ink); border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+.take[aria-pressed="true"] { border-color: rgba(70, 232, 240, 0.45); background: rgba(70, 232, 240, 0.07); }
+.take[aria-pressed="true"] .take__state::before { left: 8px; top: 8px; width: 3px; height: 10px; border: 0; background: var(--ink); box-shadow: 6px 0 0 var(--ink); }
+
+/* ---------- Phones ---------- */
+@media (max-width: 900px) {
+  .stage__radial { inset: 0 0 auto 0; height: 100svh; height: min(100svh, 900px); }
+  .stage__radial .q8vv-scene { inset: 0; }
+  .stage__radial .q8vv-scene[data-shade~="left"]::after { background: linear-gradient(90deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,.18) 60%, rgba(0,0,0,0) 100%); }
+  .stage__radial .q8vv-scene[data-shade~="bottom"]::before { background: linear-gradient(0deg, #000 0%, rgba(0,0,0,0) 18%); }
+}
+@media (max-width: 600px) {
+  .console { bottom: calc(38px + var(--sa-b)); }
+  .line--agent { font-size: 18px; }
+  .controls { margin-top: 18px; gap: 12px; }
+  .talk { min-width: 0; flex: 1 1 auto; max-width: 260px; }
+  .pipdock { flex-basis: 100%; justify-content: center; padding-left: 0; border-left: 0; margin-top: 2px; }
+  .sheet { left: calc(12px + var(--sa-l)); right: calc(12px + var(--sa-r)); width: auto; top: auto; bottom: calc(12px + var(--sa-b)); }
+}
+@media (prefers-reduced-motion: reduce) { .talk { transition: none; } }
+
+/* Resting dock: a faint hairline holds the Wave's place until a call opens the mic. */
+.pipdock { background: linear-gradient(90deg, rgba(168,139,255,0), rgba(168,139,255,.28) 30%, rgba(251,0,1,.22) 70%, rgba(251,0,1,0)) no-repeat; background-size: 168px 1px; background-position: 12px 50%; }
+.stage[data-state="listening"] .pipdock, .stage[data-state="speaking"] .pipdock { background: none; }
+.stage:not([data-state="listening"]):not([data-state="speaking"]) .pipdock__label { opacity: .55; }
+
+@media (max-width: 600px) {
+  .pipdock { background-position: 0 50%; }
+  /* Compact sheet on phones so the radial stays visible while a take plays. */
+  .sheet { padding: 14px 14px 12px; background: rgba(12, 12, 14, 0.86); }
+  .sheet__note { margin: 4px 0 10px; }
+  .takes { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .take { min-height: 46px; padding: 0 10px 0 12px; grid-template-columns: 1fr auto; row-gap: 0; }
+  .take__tag { grid-column: 1; grid-row: 2; margin: -6px 0 6px; font-size: 9.5px; }
+  .take__tag:empty { display: none; }
+  .take__state { grid-column: 2; grid-row: 1 / span 2; }
+}
