@@ -1,4 +1,4 @@
-/* Hark Voice Mk II: page layer. Loaded after modules/voice/q8-voice-visuals.css (never edited).
+/* Hark Voice Mk II (v2.1 machined controls): page layer. Loaded after modules/voice/q8-voice-visuals.css (never edited).
    Mid-century instrument console: round controls only (no pills, capsules or rounded rectangles), fine tick marks,
    brushed metal and enamel done in CSS. The radial stays a full-bleed field: no circle clip, no boxed card. */
 
@@ -70,29 +70,44 @@ a { color: inherit; }
 }
 .stage > :not(.stage__radial):not(.stage__vignette) { position: relative; z-index: 1; }
 
-/* ---------- Shared metal + enamel ---------- */
-.orb, .switch__btn, .dot__btn, .tab__btn, .knob__cap {
+/* ---------- Shared machined finish (v2.1) ----------
+   Matte dark anodised, spun-machined: fine concentric ridges, a soft four-lobe anisotropic sheen (how turned
+   aluminium catches light), no glossy specular hotspot. One finish for every round control. */
+:root { --face: color-mix(in srgb, var(--metal) 58%, #0a0a0a); --face-deep: color-mix(in srgb, var(--metal) 34%, #050505); --chamfer: color-mix(in srgb, var(--metal-hi) 30%, transparent); }
+.orb, .talk, .take, .switch__btn, .dot__btn, .tab__btn, .knob__cap {
   background:
-    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 46%),
-    repeating-conic-gradient(from 8deg, rgba(255, 255, 255, 0.045) 0deg 3deg, rgba(0, 0, 0, 0.06) 3deg 6deg),
-    radial-gradient(circle at 50% 60%, var(--metal), color-mix(in srgb, var(--metal) 55%, #000) 100%);
+    repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.026) 0 0.9px, rgba(0, 0, 0, 0.06) 0.9px 1.9px),
+    conic-gradient(from 30deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 12%, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0) 37%, rgba(255, 255, 255, 0.075) 50%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.05) 75%, rgba(255, 255, 255, 0) 87%, rgba(255, 255, 255, 0.075)),
+    radial-gradient(circle at 50% 42%, var(--face), var(--face-deep) 100%);
+}
+/* knurled rim: fine straight ridges on the outer 3px, like a Braun or OP-1 knob edge */
+.orb::before, .talk::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.13) 0deg 1.4deg, rgba(0, 0, 0, 0.28) 1.4deg 4deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
 }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 /* ---------- Round buttons ---------- */
 .ctl { display: flex; flex-direction: column; align-items: center; gap: 7px; }
-.ctl__label { font: 600 10px/1 var(--sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); text-shadow: 0 1px 10px #000; }
+.ctl__label { font: 600 8.5px/1 var(--sans); letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); text-shadow: 0 1px 8px #000; padding-left: 0.24em; }
+/* flush-mounted: a dark recess well and a hairline chamfer instead of a drop shadow */
 .orb {
-  width: 58px; height: 58px; border-radius: 50%; padding: 0; cursor: pointer;
-  display: grid; place-items: center; color: var(--ink);
-  border: 1px solid color-mix(in srgb, var(--metal-hi) 45%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -2px 6px rgba(0, 0, 0, 0.5), 0 0 0 4px rgba(0, 0, 0, 0.35), 0 6px 18px rgba(0, 0, 0, 0.55);
-  transition: transform 0.12s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  position: relative; width: 52px; height: 52px; border-radius: 50%; padding: 0; cursor: pointer;
+  display: grid; place-items: center; color: var(--muted);
+  border: 1px solid var(--chamfer);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 -1px 3px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(0, 0, 0, 0.55), 0 0 0 4px var(--line);
+  transition: transform 0.12s ease, box-shadow 0.2s ease, opacity 0.2s ease, color 0.2s ease;
 }
+.orb svg { position: relative; }
+.orb:hover:not(:disabled) { color: var(--ink); }
 .orb--sm { width: 44px; height: 44px; }
-.orb:active:not(:disabled) { transform: scale(0.96); box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(0, 0, 0, 0.35); }
-.orb:disabled { opacity: 0.42; cursor: default; }
-.orb[aria-pressed="true"], .orb[aria-expanded="true"] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -2px 6px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--accent), 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent); }
+.orb--sm svg { width: 18px; height: 18px; }
+.orb:active:not(:disabled) { transform: scale(0.97); box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.7), 0 0 0 3px rgba(0, 0, 0, 0.55), 0 0 0 4px var(--line); }
+.orb:disabled { opacity: 0.4; cursor: default; }
+/* engaged: the chamfer takes the accent; a hairline, not a halo */
+.orb[aria-pressed="true"], .orb[aria-expanded="true"] { color: var(--ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 -1px 3px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(0, 0, 0, 0.55), 0 0 0 4.5px var(--accent); }
 #muteBtn .ic--muted { display: none; }
 #muteBtn[aria-pressed="true"] .ic--mic { display: none; }
 #muteBtn[aria-pressed="true"] .ic--muted { display: block; color: var(--end); }
@@ -107,7 +122,7 @@ a { color: inherit; }
 .brand__word { font: 500 24px/1 var(--sans); letter-spacing: 0.04em; }
 .brand__sub { font: 600 9.5px/1 var(--sans); letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); }
 .brand__mk { color: var(--accent); }
-.top__ctl { display: flex; gap: 14px; }
+.top__ctl { display: flex; gap: 18px; padding-top: 4px; }
 
 /* ---------- Console ---------- */
 .console {
@@ -127,39 +142,47 @@ a { color: inherit; }
 .line--gpu { margin-top: 6px; font-size: 12.5px; color: var(--muted); max-width: 38ch; }
 .fine { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); max-width: 36ch; text-shadow: 0 2px 14px #000; }
 
-.deck { margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 14px; }
-.talkwrap { position: relative; width: 216px; height: 216px; flex: 0 0 auto; }
+.deck { margin-top: 10px; display: flex; align-items: flex-start; justify-content: center; gap: 22px; }
+/* every control sits in a well as tall as the Talk ring, so circles share one centre line and labels one baseline */
+.deck > .ctl > .orb { margin: calc((var(--ring) - 52px) / 2) 0; }
+.deck { --ring: 112px; --talk: 68px; }
+.talkwrap { position: relative; width: var(--ring); height: var(--ring); flex: 0 0 auto; }
 .meter { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .meter__src {
-  position: absolute; left: 50%; bottom: 13px; transform: translateX(-50%);
-  font: 600 9.5px/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
+  position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); padding-left: 0.2em;
+  font: 500 7.5px/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); opacity: 0.85;
 }
-.talkwrap[data-src="call"] .meter__src, .talkwrap[data-src="test"] .meter__src, .talkwrap[data-src="take"] .meter__src { color: var(--ink); }
+.talkwrap[data-src="call"] .meter__src, .talkwrap[data-src="test"] .meter__src, .talkwrap[data-src="take"] .meter__src { color: var(--ink); opacity: 1; }
+/* Talk: a compact machined cap, same finish as the others, slightly larger; one accent lamp; no printed text */
 .talk {
-  position: absolute; left: 50%; top: 50%; width: 114px; height: 114px; margin: -57px 0 0 -57px;
-  border-radius: 50%; padding: 0; cursor: pointer; border: 0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  color: var(--cap-ink);
-  background:
-    radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 52%),
-    radial-gradient(circle at 50% 55%, var(--cap), color-mix(in srgb, var(--cap) 78%, #000) 100%);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--enamel) 85%, transparent), 0 0 0 6px var(--line), inset 0 -3px 8px rgba(0, 0, 0, 0.25), 0 10px 26px rgba(0, 0, 0, 0.6);
-  transition: transform 0.12s ease, background 0.25s ease;
+  position: absolute; left: 50%; top: 50%; width: var(--talk); height: var(--talk); margin: calc(var(--talk) / -2) 0 0 calc(var(--talk) / -2);
+  border-radius: 50%; padding: 0; cursor: pointer; color: var(--ink);
+  border: 1px solid var(--chamfer);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 4px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(0, 0, 0, 0.6), 0 0 0 4px var(--line);
+  transition: transform 0.12s ease, box-shadow 0.25s ease, opacity 0.2s ease;
 }
-.talk:active:not(:disabled) { transform: scale(0.97); }
-.talk:disabled { opacity: 0.6; }
-.talk__label { font: 600 21px/1 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; }
-.talk__sub { font: 600 9px/1 var(--sans); letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.72; }
-.talk__lamp { width: 9px; height: 9px; border-radius: 50%; margin-bottom: 3px; background: color-mix(in srgb, var(--cap-ink) 30%, var(--cap)); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4); }
+.talk:active:not(:disabled) { transform: scale(0.97); box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.7), 0 0 0 3px rgba(0, 0, 0, 0.6), 0 0 0 4px var(--line); }
+.talk:disabled { opacity: 0.55; cursor: default; }
+.talk:hover:not(:disabled) { border-color: color-mix(in srgb, var(--metal-hi) 50%, transparent); }
+/* the lamp: a 7px jewel set into the cap at twelve o'clock (Braun's indicator dot) */
+.talk__lamp {
+  position: absolute; left: 50%; top: 11px; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 22%, #0b0b0b);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.stage[data-state="connecting"] .talk__lamp { background: var(--accent); animation: lamp 1.1s ease-in-out infinite; }
+.stage[data-state="listening"] .talk__lamp, .stage[data-state="speaking"] .talk__lamp { background: var(--accent); box-shadow: 0 0 6px var(--accent), 0 0 0 1px rgba(0, 0, 0, 0.5); }
+.talkwrap[data-gate="open"] .talk__lamp { background: color-mix(in srgb, var(--accent) 70%, #fff); box-shadow: 0 0 10px var(--accent), 0 0 3px #fff, 0 0 0 1px rgba(0, 0, 0, 0.5); }
+.stage[data-muted="true"] .talk__lamp, .stage[data-muted="true"] .talkwrap[data-gate] .talk__lamp { background: var(--end); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); }
+/* live: the chamfer takes the end colour so the cap reads as "end call" without any printed text */
 .stage[data-state="connecting"] .talk, .stage[data-state="listening"] .talk, .stage[data-state="speaking"] .talk {
-  background:
-    radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 52%),
-    radial-gradient(circle at 50% 55%, var(--end), color-mix(in srgb, var(--end) 72%, #000) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 4px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(0, 0, 0, 0.6), 0 0 0 4.5px var(--end);
 }
-.stage[data-state="listening"] .talk__lamp, .stage[data-state="speaking"] .talk__lamp { background: var(--cap); box-shadow: 0 0 6px rgba(255, 255, 255, 0.7); }
-.talkwrap[data-gate="open"] .talk__lamp { background: var(--cap); box-shadow: 0 0 10px var(--cap), 0 0 3px #fff; }
-.stage[data-state="connecting"] .talk__lamp { animation: blink 1s steps(2, start) infinite; }
-@keyframes blink { 50% { opacity: 0.25; } }
+.talk__label { color: var(--ink); }
+.talk__sub { display: none; }
+.stage[data-state="connecting"] .talk__label, .stage[data-state="listening"] .talk__label, .stage[data-state="speaking"] .talk__label { color: var(--end); }
+@keyframes lamp { 0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent); } 50% { opacity: 0.3; box-shadow: none; } }
 
 .pipdock { margin-top: 4px; display: flex; justify-content: center; }
 #q8-voice-pip { --q8vv-pip-w: 168px; --q8vv-pip-h: 40px; }
@@ -212,9 +235,9 @@ a { color: inherit; }
 /* tabs: five round section selectors */
 .tabs { display: flex; justify-content: space-between; gap: 4px; padding: 14px 4px 10px; border-bottom: 1px solid var(--line); }
 .tab { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 0; }
-.tab__btn { width: 44px; height: 44px; border-radius: 50%; padding: 0; cursor: pointer; border: 1px solid color-mix(in srgb, var(--metal-hi) 40%, transparent); display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -2px 5px rgba(0, 0, 0, 0.45); }
+.tab__btn { width: 44px; height: 44px; border-radius: 50%; padding: 0; cursor: pointer; border: 1px solid var(--chamfer); display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -2px 5px rgba(0, 0, 0, 0.45); }
 .tab__face { font: 500 13px/1 var(--mono); color: var(--muted); }
-.tab__btn[aria-selected="true"] { box-shadow: 0 0 0 2px var(--accent), 0 0 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+.tab__btn[aria-selected="true"] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 0 0 1.5px var(--accent); }
 .tab__btn[aria-selected="true"] .tab__face { color: var(--ink); }
 .tab__label { font: 600 9px/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); cursor: pointer; white-space: nowrap; }
 .tab__btn[aria-selected="true"] + .tab__label { color: var(--ink); }
@@ -242,8 +265,8 @@ a { color: inherit; }
 .knob__arc { fill: none; stroke: var(--accent); stroke-width: 2.6; stroke-linecap: round; }
 .knob__cap {
   position: absolute; inset: 17px; border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--metal-hi) 50%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 3px 8px rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--chamfer);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 5px rgba(0, 0, 0, 0.55);
 }
 .knob__ptr { position: absolute; left: 50%; top: 4px; width: 3px; height: 11px; margin-left: -1.5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent); }
 .knob__val { font: 500 12px/1.2 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
@@ -255,7 +278,7 @@ a { color: inherit; }
 .switches { display: flex; flex-direction: column; gap: 12px; flex: 1 1 220px; min-width: 200px; }
 .switch { display: flex; align-items: center; gap: 12px; }
 .switch.is-off { opacity: 0.45; }
-.switch__btn { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; padding: 0; cursor: pointer; border: 1px solid color-mix(in srgb, var(--metal-hi) 40%, transparent); display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -2px 5px rgba(0, 0, 0, 0.45), 0 3px 8px rgba(0, 0, 0, 0.4); }
+.switch__btn { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; padding: 0; cursor: pointer; border: 1px solid var(--chamfer); display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -2px 5px rgba(0, 0, 0, 0.45), 0 3px 8px rgba(0, 0, 0, 0.4); }
 .switch__btn:disabled { cursor: default; }
 .switch__lamp { width: 14px; height: 14px; border-radius: 50%; background: color-mix(in srgb, var(--enamel) 70%, #000); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--line); transition: background 0.15s ease, box-shadow 0.15s ease; }
 .switch__btn[aria-checked="true"] .switch__lamp { background: var(--accent); box-shadow: 0 0 10px var(--accent), inset 0 -1px 2px rgba(0, 0, 0, 0.3); }
@@ -267,10 +290,10 @@ a { color: inherit; }
 /* option dots */
 .dots { display: flex; flex-wrap: wrap; gap: 10px 4px; }
 .dot { width: 78px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
-.dot__btn { width: 44px; height: 44px; border-radius: 50%; padding: 0; cursor: pointer; border: 1px solid color-mix(in srgb, var(--metal-hi) 40%, transparent); display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -2px 5px rgba(0, 0, 0, 0.45); }
+.dot__btn { width: 44px; height: 44px; border-radius: 50%; padding: 0; cursor: pointer; border: 1px solid var(--chamfer); display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -2px 5px rgba(0, 0, 0, 0.45); }
 .dot__face { width: 14px; height: 14px; border-radius: 50%; background: color-mix(in srgb, var(--enamel) 70%, #000); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--line); }
 .dot__face--swatch { width: 30px; height: 30px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 1px 3px rgba(0, 0, 0, 0.6); }
-.dot__btn[aria-checked="true"] { box-shadow: 0 0 0 2px var(--accent), 0 0 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+.dot__btn[aria-checked="true"] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 0 0 1.5px var(--accent); }
 .dot__btn[aria-checked="true"] .dot__face:not(.dot__face--swatch) { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
 .dot__label { font-size: 11.5px; line-height: 1.25; color: var(--muted); cursor: pointer; }
 .dot__btn[aria-checked="true"] ~ .dot__label { color: var(--ink); }
@@ -289,12 +312,8 @@ a { color: inherit; }
 .takes li { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .take {
   position: relative; width: 78px; height: 78px; border-radius: 50%; padding: 0; cursor: pointer;
-  border: 1px solid color-mix(in srgb, var(--metal-hi) 40%, transparent); color: var(--ink);
-  background:
-    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 46%),
-    repeating-conic-gradient(from 8deg, rgba(255, 255, 255, 0.045) 0deg 3deg, rgba(0, 0, 0, 0.06) 3deg 6deg),
-    radial-gradient(circle at 50% 60%, var(--metal), color-mix(in srgb, var(--metal) 55%, #000) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -2px 6px rgba(0, 0, 0, 0.5), 0 5px 14px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--chamfer); color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 -1px 3px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(0, 0, 0, 0.5);
 }
 .take:disabled { opacity: 0.4; cursor: default; }
 .take__name { font: 500 15px/1 var(--sans); letter-spacing: 0.04em; }
@@ -304,22 +323,18 @@ a { color: inherit; }
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
 }
-.take[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent), 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent); }
+.take[aria-pressed="true"] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 0 0 3px rgba(0, 0, 0, 0.5), 0 0 0 4.5px var(--accent); }
 .take[aria-pressed="true"] .take__dial { background: conic-gradient(var(--accent2) calc(var(--p, 0) * 1turn), var(--faint) 0); }
 .take__tag { font: 600 9px/1.2 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); min-height: 11px; margin-top: 4px; }
 .take__geek { font: 500 10px/1 var(--mono); color: var(--muted); }
 
 /* ---------- Mobile tightening ---------- */
 @media (max-height: 760px) {
-  .talkwrap { width: 196px; height: 196px; }
-  .talk { width: 104px; height: 104px; margin: -52px 0 0 -52px; }
+  .deck { --ring: 104px; --talk: 64px; }
   .stats .gauge canvas { width: 72px; height: 72px; }
 }
 @media (max-width: 360px) {
-  .deck { gap: 8px; }
-  .talkwrap { width: 190px; height: 190px; }
-  .talk { width: 100px; height: 100px; margin: -50px 0 0 -50px; }
-  .orb { width: 52px; height: 52px; }
+  .deck { gap: 14px; }
 }
 
 /* ---------- Desktop: settings and takes as a side console; stats top-left ---------- */
@@ -330,6 +345,7 @@ a { color: inherit; }
   .stage[data-sheet="settings"] .top__ctl, .stage[data-sheet="takes"] .top__ctl { visibility: hidden; }
   .stats { right: auto; width: 380px; top: calc(92px + var(--sa-t)); left: calc(24px + var(--sa-l)); }
   .console { bottom: calc(40px + var(--sa-b)); }
+  .deck { --ring: 124px; --talk: 76px; gap: 30px; }
   .top { padding-left: calc(28px + var(--sa-l)); padding-right: calc(24px + var(--sa-r)); padding-top: calc(20px + var(--sa-t)); }
 }
 

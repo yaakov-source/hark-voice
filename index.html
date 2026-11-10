@@ -73,14 +73,15 @@
           <span class="ctl__label" id="muteLabel" aria-hidden="true">Mute</span>
         </div>
 
-        <div class="talkwrap" id="talkWrap">
-          <canvas class="meter" id="meter" aria-hidden="true"></canvas>
-          <button type="button" class="talk" id="talkBtn" disabled data-needs-js>
-            <span class="talk__lamp" aria-hidden="true"></span>
-            <span class="talk__label" id="talkLabel">Talk</span>
-            <span class="talk__sub" id="talkSub" aria-hidden="true">to Hark</span>
-          </button>
-          <span class="meter__src" id="meterSrc" aria-hidden="true">Off</span>
+        <div class="ctl ctl--talk">
+          <div class="talkwrap" id="talkWrap">
+            <canvas class="meter" id="meter" aria-hidden="true"></canvas>
+            <button type="button" class="talk" id="talkBtn" aria-label="Talk to Hark" disabled data-needs-js>
+              <span class="talk__lamp" aria-hidden="true"></span>
+            </button>
+            <span class="meter__src" id="meterSrc" aria-hidden="true">Off</span>
+          </div>
+          <span class="ctl__label talk__label" aria-hidden="true"><span id="talkLabel">Talk</span><span class="talk__sub" id="talkSub">to Hark</span></span>
         </div>
 
         <div class="ctl">

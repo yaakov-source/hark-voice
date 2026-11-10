@@ -1,6 +1,6 @@
 /* Hark Voice service worker: cache-first for the app shell and media; ElevenLabs and every other
    cross-origin request always goes to the network (never cached, never intercepted). */
-var VERSION = "hark-voice-v2";
+var VERSION = "hark-voice-v2-1";
 var SHELL = [
   "./", "index.html", "notices.html", "manifest.webmanifest",
   "hark.css", "hark-ui.js", "hark-voice.js",

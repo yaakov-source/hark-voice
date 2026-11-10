@@ -239,27 +239,29 @@
     this.c.width = w; this.c.height = h; this.w = w; this.h = h; this.dpr = dpr; this.bezel = null;
   };
   Meter.prototype.setPalette = function () { this.cols = palette(); this.bezel = null; };
+  /* v2.1: a fine instrument ring around a 68px cap. Radii are fractions of R so the ring scales with the canvas;
+     the cap edge sits at ~0.61 R. Hairline strokes, 60 engraved ticks, a 1px VU track. */
   Meter.prototype.drawBezel = function () {
     var w = this.w, h = this.h, R = Math.min(w, h) / 2, cx = w / 2, cy = h / 2, d = this.dpr, cols = this.cols;
     var off = document.createElement("canvas"); off.width = w; off.height = h;
     var g = off.getContext("2d");
-    g.lineCap = "round";
-    // outer bezel ticks: 360deg, a long tick every 30deg
-    for (var i = 0; i < 72; i++) {
-      var a = (i * 5 - 90) * Math.PI / 180, long = i % 6 === 0;
-      var r0 = R * (long ? 0.915 : 0.94), r1 = R * 0.975;
-      g.strokeStyle = long ? cols.muted : cols.faint; g.lineWidth = (long ? 1.4 : 1) * d;
+    g.lineCap = "butt";
+    // engraved bezel ticks over the 270deg sweep only (the bottom gap carries the source label), long every 45deg
+    var nT = 54;
+    for (var i = 0; i <= nT; i++) {
+      var deg = -SWEEP + (i * 2 * SWEEP) / nT, a = (deg - 90) * Math.PI / 180, long = i % 9 === 0;
+      var r0 = R * (long ? 0.925 : 0.95), r1 = R * 0.99;
+      g.strokeStyle = long ? cols.muted : cols.faint; g.lineWidth = (long ? 1 : 0.75) * d;
       g.beginPath(); g.moveTo(cx + r0 * Math.cos(a), cy + r0 * Math.sin(a)); g.lineTo(cx + r1 * Math.cos(a), cy + r1 * Math.sin(a)); g.stroke();
     }
-    // VU arc track
-    g.strokeStyle = cols.faint; g.lineWidth = 2 * d;
-    g.beginPath(); g.arc(cx, cy, R * 0.86, (-SWEEP - 90) * Math.PI / 180, (SWEEP - 90) * Math.PI / 180); g.stroke();
-    // dB scale marks on the arc: -60 -40 -20 -10 -6 -3 0
-    [-60, -40, -20, -10, -6, -3, 0].forEach(function (db) {
-      var f = (db + 60) / 60, a = (-SWEEP + f * 2 * SWEEP - 90) * Math.PI / 180;
-      g.strokeStyle = db >= -6 ? cols.accent2 : cols.muted; g.lineWidth = 1.2 * d;
-      g.beginPath(); g.moveTo(cx + R * 0.83 * Math.cos(a), cy + R * 0.83 * Math.sin(a)); g.lineTo(cx + R * 0.89 * Math.cos(a), cy + R * 0.89 * Math.sin(a)); g.stroke();
-    });
+    // VU arc track (hairline)
+    g.strokeStyle = cols.faint; g.lineWidth = 0.9 * d;
+    g.beginPath(); g.arc(cx, cy, R * 0.885, (-SWEEP - 90) * Math.PI / 180, (SWEEP - 90) * Math.PI / 180); g.stroke();
+    // -6 dB and up: a short accent2 segment on the track (the red zone)
+    var fz = (-6 + 60) / 60;
+    g.strokeStyle = cols.accent2; g.globalAlpha = 0.75; g.lineWidth = 0.9 * d;
+    g.beginPath(); g.arc(cx, cy, R * 0.885, (-SWEEP + fz * 2 * SWEEP - 90) * Math.PI / 180, (SWEEP - 90) * Math.PI / 180); g.stroke();
+    g.globalAlpha = 1;
     this.bezel = off;
   };
   // s: { bands:Float32Array(0..1), db, peakDb, active, gate, muted }
@@ -271,15 +273,18 @@
     g.drawImage(this.bezel, 0, 0);
     var A = hexToRgb(cols.accent), B = hexToRgb(cols.accent2), n = this.bars;
     g.lineCap = "round";
-    var r0 = R * 0.6, r1 = R * 0.8, span = r1 - r0;
+    // spectrum: short radial hairlines between the cap and the VU track
+    var r0 = R * 0.72, r1 = R * 0.85, span = r1 - r0;
+    var lw = Math.max(1 * d, (Math.PI * 2 * r0 * (270 / 360)) / n * 0.3);
     for (var i = 0; i < n; i++) {
       var f = n > 1 ? i / (n - 1) : 0, deg = -SWEEP + f * 2 * SWEEP, a = (deg - 90) * Math.PI / 180;
       var v = s.bands ? s.bands[i] || 0 : 0;
       if (s.muted) v = 0;
-      var len = Math.max(span * 0.06, span * clamp(v, 0, 1));
-      g.strokeStyle = s.active && !s.muted ? mix(A, B, f) : cols.faint;
-      g.globalAlpha = s.active && !s.muted ? 0.45 + 0.55 * clamp(v * 1.4, 0, 1) : 1;
-      g.lineWidth = Math.max(1.4 * d, (Math.PI * 2 * r0 * (270 / 360)) / n * 0.42);
+      var live = s.active && !s.muted;
+      var len = Math.max(span * 0.08, span * clamp(v, 0, 1));
+      g.strokeStyle = live ? mix(A, B, f) : cols.faint;
+      g.globalAlpha = live ? 0.4 + 0.6 * clamp(v * 1.4, 0, 1) : 0.7;
+      g.lineWidth = lw;
       g.beginPath(); g.moveTo(cx + r0 * Math.cos(a), cy + r0 * Math.sin(a)); g.lineTo(cx + (r0 + len) * Math.cos(a), cy + (r0 + len) * Math.sin(a)); g.stroke();
     }
     g.globalAlpha = 1;
@@ -287,16 +292,16 @@
     if (s.active) {
       var fl = clamp((s.db + 60) / 60, 0, 1), fp = clamp((s.peakDb + 60) / 60, 0, 1);
       var a0 = (-SWEEP - 90) * Math.PI / 180, a1 = (-SWEEP + fl * 2 * SWEEP - 90) * Math.PI / 180;
-      if (fl > 0.002) { g.strokeStyle = s.muted ? cols.muted : cols.accent; g.lineWidth = 3 * d; g.beginPath(); g.arc(cx, cy, R * 0.86, a0, a1); g.stroke(); }
+      if (fl > 0.002) { g.strokeStyle = s.muted ? cols.muted : cols.accent; g.lineWidth = 1.6 * d; g.beginPath(); g.arc(cx, cy, R * 0.885, a0, a1); g.stroke(); }
       if (fp > 0.002) {
         var ap = (-SWEEP + fp * 2 * SWEEP - 90) * Math.PI / 180;
-        g.strokeStyle = cols.accent2; g.lineWidth = 2 * d;
-        g.beginPath(); g.moveTo(cx + R * 0.82 * Math.cos(ap), cy + R * 0.82 * Math.sin(ap)); g.lineTo(cx + R * 0.9 * Math.cos(ap), cy + R * 0.9 * Math.sin(ap)); g.stroke();
+        g.strokeStyle = cols.accent2; g.lineWidth = 1.2 * d;
+        g.beginPath(); g.moveTo(cx + R * 0.86 * Math.cos(ap), cy + R * 0.86 * Math.sin(ap)); g.lineTo(cx + R * 0.91 * Math.cos(ap), cy + R * 0.91 * Math.sin(ap)); g.stroke();
       }
       // needle tip riding the bezel
       var an = (-SWEEP + fl * 2 * SWEEP - 90) * Math.PI / 180;
       g.fillStyle = s.gate ? cols.accent2 : cols.ink;
-      g.beginPath(); g.arc(cx + R * 0.945 * Math.cos(an), cy + R * 0.945 * Math.sin(an), 2.6 * d, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(cx + R * 0.955 * Math.cos(an), cy + R * 0.955 * Math.sin(an), 1.5 * d, 0, Math.PI * 2); g.fill();
     }
   };
 
