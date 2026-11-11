@@ -1,4 +1,4 @@
-/* Hark Voice UI kit (app/hark-ui.js): circular controls, the input meter, the stats gauges and the small
+/* Hark Voice UI kit (app/hark-ui.js): circular controls, the input meter (v2.2: wide glass strip), the stats gauges and the small
  * DSP helpers the stats readout uses. No dependencies. Everything here is round: knobs, switches and
  * option dots. Exposes window.HarkUI. */
 (function () {
@@ -224,12 +224,16 @@
   }
   function mix(a, b, t) { return "rgb(" + Math.round(a[0] + (b[0] - a[0]) * t) + "," + Math.round(a[1] + (b[1] - a[1]) * t) + "," + Math.round(a[2] + (b[2] - a[2]) * t) + ")"; }
 
-  /* ---------- Input meter: radial spectrum dial + 270deg VU arc with peak hold, around the Talk button ---------- */
+  /* ---------- Input meter (v2.2): a wide glass-cockpit strip above the Talk cluster ----------
+     A fine graticule, the live input trace (time domain, the line) with the agent's output as a dimmer second
+     trace, a faint 40-band spectrum floor, and a horizontal VU bar with peak hold over a -60..0 dBFS scale.
+     The static layer (graticule, track, ticks, labels) is cached and redrawn only on resize or palette change. */
+  var DB_MIN = -60, SCALE = [-60, -48, -36, -24, -12, -6, 0];
   function Meter(canvas, opts) {
     this.c = canvas; this.g = canvas.getContext("2d"); this.bars = opts && opts.bars || 40;
-    this.cols = palette(); this.w = 0; this.h = 0; this.dpr = 1; this.bezel = null;
+    this.cols = palette(); this.w = 0; this.h = 0; this.dpr = 1; this.bezel = null; this.prevIn = null; this.prevOut = null; this.last = null;
     var self = this;
-    if (window.ResizeObserver) new ResizeObserver(function () { self.resize(); }).observe(canvas);
+    if (window.ResizeObserver) new ResizeObserver(function () { self.resize(); if (self.last) self.draw(self.last); }).observe(canvas);
     this.resize();
   }
   Meter.prototype.resize = function () {
@@ -239,69 +243,100 @@
     this.c.width = w; this.c.height = h; this.w = w; this.h = h; this.dpr = dpr; this.bezel = null;
   };
   Meter.prototype.setPalette = function () { this.cols = palette(); this.bezel = null; };
-  /* v2.1: a fine instrument ring around a 68px cap. Radii are fractions of R so the ring scales with the canvas;
-     the cap edge sits at ~0.61 R. Hairline strokes, 60 engraved ticks, a 1px VU track. */
+  Meter.prototype.geom = function () {
+    var d = this.dpr, w = this.w, h = this.h;
+    var x0 = 2 * d, x1 = w - 10 * d, barH = 4 * d;
+    var labY = h - 3 * d, barY = h - 24 * d, plotY0 = 6 * d, plotY1 = barY - 7 * d;
+    return { x0: x0, x1: x1, pw: x1 - x0, py0: plotY0, py1: plotY1, ph: plotY1 - plotY0, barY: barY, barH: barH, labY: labY, d: d };
+  };
+  function xOf(G, db) { return G.x0 + clamp((db - DB_MIN) / -DB_MIN, 0, 1) * G.pw; }
   Meter.prototype.drawBezel = function () {
-    var w = this.w, h = this.h, R = Math.min(w, h) / 2, cx = w / 2, cy = h / 2, d = this.dpr, cols = this.cols;
+    var w = this.w, h = this.h, cols = this.cols, G = this.geom(), d = G.d;
     var off = document.createElement("canvas"); off.width = w; off.height = h;
-    var g = off.getContext("2d");
-    g.lineCap = "butt";
-    // engraved bezel ticks over the 270deg sweep only (the bottom gap carries the source label), long every 45deg
-    var nT = 54;
-    for (var i = 0; i <= nT; i++) {
-      var deg = -SWEEP + (i * 2 * SWEEP) / nT, a = (deg - 90) * Math.PI / 180, long = i % 9 === 0;
-      var r0 = R * (long ? 0.925 : 0.95), r1 = R * 0.99;
-      g.strokeStyle = long ? cols.muted : cols.faint; g.lineWidth = (long ? 1 : 0.75) * d;
-      g.beginPath(); g.moveTo(cx + r0 * Math.cos(a), cy + r0 * Math.sin(a)); g.lineTo(cx + r1 * Math.cos(a), cy + r1 * Math.sin(a)); g.stroke();
-    }
-    // VU arc track (hairline)
-    g.strokeStyle = cols.faint; g.lineWidth = 0.9 * d;
-    g.beginPath(); g.arc(cx, cy, R * 0.885, (-SWEEP - 90) * Math.PI / 180, (SWEEP - 90) * Math.PI / 180); g.stroke();
-    // -6 dB and up: a short accent2 segment on the track (the red zone)
-    var fz = (-6 + 60) / 60;
-    g.strokeStyle = cols.accent2; g.globalAlpha = 0.75; g.lineWidth = 0.9 * d;
-    g.beginPath(); g.arc(cx, cy, R * 0.885, (-SWEEP + fz * 2 * SWEEP - 90) * Math.PI / 180, (SWEEP - 90) * Math.PI / 180); g.stroke();
+    var g = off.getContext("2d"), i, x, y;
+    // graticule: 12 columns, 4 rows; the centre line a touch brighter; minor ticks along the plot's left edge
+    g.strokeStyle = cols.faint; g.lineWidth = Math.max(1, 0.6 * d); g.globalAlpha = 0.55;
+    for (i = 1; i < 12; i++) { x = Math.round(G.x0 + (i * G.pw) / 12) + 0.5; g.beginPath(); g.moveTo(x, G.py0); g.lineTo(x, G.py1); g.stroke(); }
+    g.setLineDash([2 * d, 3 * d]);
+    for (i = 1; i < 4; i++) { if (i === 2) continue; y = Math.round(G.py0 + (i * G.ph) / 4) + 0.5; g.beginPath(); g.moveTo(G.x0, y); g.lineTo(G.x1, y); g.stroke(); }
+    g.setLineDash([]);
+    g.globalAlpha = 0.9; y = Math.round(G.py0 + G.ph / 2) + 0.5;
+    g.beginPath(); g.moveTo(G.x0, y); g.lineTo(G.x1, y); g.stroke();
     g.globalAlpha = 1;
+    // plot frame: corner brackets only (glass-cockpit style), no full box
+    var k = 6 * d; g.strokeStyle = cols.muted; g.globalAlpha = 0.55; g.lineWidth = Math.max(1, 0.8 * d);
+    [[G.x0, G.py0, 1, 1], [G.x1, G.py0, -1, 1], [G.x0, G.py1, 1, -1], [G.x1, G.py1, -1, -1]].forEach(function (c) {
+      g.beginPath(); g.moveTo(c[0] + c[2] * k, c[1]); g.lineTo(c[0], c[1]); g.lineTo(c[0], c[1] + c[3] * k); g.stroke();
+    });
+    g.globalAlpha = 1;
+    // VU track + -6 dB zone
+    g.fillStyle = cols.faint; g.globalAlpha = 0.6; g.fillRect(G.x0, G.barY, G.pw, G.barH);
+    g.fillStyle = cols.accent2; g.globalAlpha = 0.35; g.fillRect(xOf(G, -6), G.barY, G.x1 - xOf(G, -6), G.barH);
+    g.globalAlpha = 1;
+    // scale: a tick every 3 dB, majors on the labelled values, mono labels under the bar
+    for (var db = DB_MIN; db <= 0; db += 3) {
+      var major = SCALE.indexOf(db) >= 0; x = Math.round(xOf(G, db)) + 0.5;
+      g.strokeStyle = major ? cols.muted : cols.faint; g.lineWidth = Math.max(1, (major ? 1 : 0.7) * d);
+      g.beginPath(); g.moveTo(x, G.barY + G.barH + 2 * d); g.lineTo(x, G.barY + G.barH + (major ? 6 : 4) * d); g.stroke();
+    }
+    g.fillStyle = cols.muted; g.font = "500 " + (9 * d) + "px ui-monospace, 'SF Mono', Menlo, 'DejaVu Sans Mono', monospace"; g.textBaseline = "alphabetic";
+    SCALE.forEach(function (v, j) {
+      g.textAlign = j === 0 ? "left" : j === SCALE.length - 1 ? "right" : "center";
+      var tx = xOf(G, v) + (j === 0 ? -1 * d : j === SCALE.length - 1 ? 1 * d : 0);
+      g.fillText(v === 0 ? "0" : String(v), tx, G.labY);
+    });
     this.bezel = off;
   };
-  // s: { bands:Float32Array(0..1), db, peakDb, active, gate, muted }
+  // Map a time-domain buffer onto n points: a short moving average (anti-alias) and a soft clip.
+  function trace(buf, n, gain, prev, keep) {
+    var out = prev && prev.length === n ? prev : new Float32Array(n);
+    if (!buf || !buf.length) { for (var z = 0; z < n; z++) out[z] *= keep; return out; }
+    var len = buf.length, step = len / n, win = Math.max(1, Math.floor(step));
+    for (var i = 0; i < n; i++) {
+      var i0 = Math.floor(i * step), s = 0, c = 0;
+      for (var j = i0; j < i0 + win && j < len; j++) { s += buf[j]; c++; }
+      var v = Math.tanh((c ? s / c : 0) * gain);
+      out[i] = keep ? out[i] * keep + v * (1 - keep) : v;
+    }
+    return out;
+  }
+  // s: { bands, db, peakDb, active, gate, muted, td (input time domain), tdOut (agent output), gain, reduced }
   Meter.prototype.draw = function (s) {
+    this.last = s;
     if (!this.w) this.resize();
     if (!this.bezel) this.drawBezel();
-    var g = this.g, w = this.w, h = this.h, R = Math.min(w, h) / 2, cx = w / 2, cy = h / 2, d = this.dpr, cols = this.cols;
+    var g = this.g, w = this.w, h = this.h, cols = this.cols, G = this.geom(), d = G.d, n = this.bars, i, x, y;
     g.clearRect(0, 0, w, h);
     g.drawImage(this.bezel, 0, 0);
-    var A = hexToRgb(cols.accent), B = hexToRgb(cols.accent2), n = this.bars;
-    g.lineCap = "round";
-    // spectrum: short radial hairlines between the cap and the VU track
-    var r0 = R * 0.72, r1 = R * 0.85, span = r1 - r0;
-    var lw = Math.max(1 * d, (Math.PI * 2 * r0 * (270 / 360)) / n * 0.3);
-    for (var i = 0; i < n; i++) {
-      var f = n > 1 ? i / (n - 1) : 0, deg = -SWEEP + f * 2 * SWEEP, a = (deg - 90) * Math.PI / 180;
-      var v = s.bands ? s.bands[i] || 0 : 0;
-      if (s.muted) v = 0;
-      var live = s.active && !s.muted;
-      var len = Math.max(span * 0.08, span * clamp(v, 0, 1));
-      g.strokeStyle = live ? mix(A, B, f) : cols.faint;
-      g.globalAlpha = live ? 0.4 + 0.6 * clamp(v * 1.4, 0, 1) : 0.7;
-      g.lineWidth = lw;
-      g.beginPath(); g.moveTo(cx + r0 * Math.cos(a), cy + r0 * Math.sin(a)); g.lineTo(cx + (r0 + len) * Math.cos(a), cy + (r0 + len) * Math.sin(a)); g.stroke();
+    var live = s.active && !s.muted, mid = G.py0 + G.ph / 2, amp = G.ph / 2 - 1.5 * d;
+    // spectrum floor: faint columns rising from the plot floor
+    if (live && s.bands) {
+      var cw = G.pw / n; g.fillStyle = cols.accent; g.globalAlpha = 0.16;
+      for (i = 0; i < n; i++) { var v = clamp(s.bands[i] || 0, 0, 1); if (v < 0.01) continue; var bh = v * G.ph * 0.9; g.fillRect(G.x0 + i * cw + cw * 0.2, G.py1 - bh, cw * 0.6, bh); }
+      g.globalAlpha = 1;
     }
-    g.globalAlpha = 1;
-    // VU level arc + peak hold
+    var P = Math.max(32, Math.min(240, Math.round(G.pw / (2 * d)))), gain = (s.gain || 1.6) * 3.2, keep = s.reduced ? 0.6 : 0;
+    g.lineJoin = "round"; g.lineCap = "round";
+    // agent output: a dimmer second trace
+    if (s.tdOut) {
+      this.prevOut = trace(s.tdOut, P, gain * 0.7, this.prevOut, keep);
+      g.strokeStyle = cols.accent2; g.globalAlpha = 0.5; g.lineWidth = 1 * d;
+      g.beginPath(); for (i = 0; i < P; i++) { x = G.x0 + (i / (P - 1)) * G.pw; y = mid - this.prevOut[i] * amp * 0.9; if (i) g.lineTo(x, y); else g.moveTo(x, y); } g.stroke();
+      g.globalAlpha = 1;
+    } else this.prevOut = null;
+    // input trace: the line
+    var tin = live ? s.td : null;
+    this.prevIn = trace(tin, P, gain, this.prevIn, tin ? keep : 0);
+    g.strokeStyle = live ? cols.accent : cols.muted; g.globalAlpha = live ? 1 : 0.45; g.lineWidth = (live ? 1.5 : 1) * d;
+    if (live && !s.reduced) { g.shadowColor = cols.accent; g.shadowBlur = 6 * d; }
+    g.beginPath(); for (i = 0; i < P; i++) { x = G.x0 + (i / (P - 1)) * G.pw; y = mid - this.prevIn[i] * amp; if (i) g.lineTo(x, y); else g.moveTo(x, y); } g.stroke();
+    g.shadowBlur = 0; g.globalAlpha = 1;
+    // VU bar + peak hold
     if (s.active) {
-      var fl = clamp((s.db + 60) / 60, 0, 1), fp = clamp((s.peakDb + 60) / 60, 0, 1);
-      var a0 = (-SWEEP - 90) * Math.PI / 180, a1 = (-SWEEP + fl * 2 * SWEEP - 90) * Math.PI / 180;
-      if (fl > 0.002) { g.strokeStyle = s.muted ? cols.muted : cols.accent; g.lineWidth = 1.6 * d; g.beginPath(); g.arc(cx, cy, R * 0.885, a0, a1); g.stroke(); }
-      if (fp > 0.002) {
-        var ap = (-SWEEP + fp * 2 * SWEEP - 90) * Math.PI / 180;
-        g.strokeStyle = cols.accent2; g.lineWidth = 1.2 * d;
-        g.beginPath(); g.moveTo(cx + R * 0.86 * Math.cos(ap), cy + R * 0.86 * Math.sin(ap)); g.lineTo(cx + R * 0.91 * Math.cos(ap), cy + R * 0.91 * Math.sin(ap)); g.stroke();
-      }
-      // needle tip riding the bezel
-      var an = (-SWEEP + fl * 2 * SWEEP - 90) * Math.PI / 180;
-      g.fillStyle = s.gate ? cols.accent2 : cols.ink;
-      g.beginPath(); g.arc(cx + R * 0.955 * Math.cos(an), cy + R * 0.955 * Math.sin(an), 1.5 * d, 0, Math.PI * 2); g.fill();
+      var xl = xOf(G, s.db), xp = xOf(G, s.peakDb);
+      if (s.db > DB_MIN) { g.fillStyle = s.muted ? cols.muted : cols.accent; g.fillRect(G.x0, G.barY, xl - G.x0, G.barH); }
+      if (s.db > -6) { g.fillStyle = cols.accent2; g.fillRect(xOf(G, -6), G.barY, xl - xOf(G, -6), G.barH); }
+      if (s.peakDb > DB_MIN) { g.fillStyle = s.gate ? cols.ink : cols.accent2; g.fillRect(Math.round(xp - d), G.barY - 2 * d, 2 * d, G.barH + 4 * d); }
     }
   };
 

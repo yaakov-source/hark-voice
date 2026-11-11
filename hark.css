@@ -131,8 +131,8 @@ a { color: inherit; }
   padding: 0 calc(14px + var(--sa-r)) 0 calc(14px + var(--sa-l)); text-align: center;
 }
 .line { margin: 0; max-width: 34ch; text-shadow: 0 2px 18px #000; display: flex; align-items: baseline; justify-content: center; gap: 10px; }
-.line--agent { font: 500 19px/28px var(--sans); min-height: 28px; letter-spacing: 0.01em; }
-.line--you { margin-top: 2px; font-size: 14px; line-height: 20px; color: var(--muted); min-height: 20px; }
+.line--agent { font: 500 16px/22px var(--sans); min-height: 22px; letter-spacing: 0.01em; }
+.line--you { margin-top: 1px; font-size: 13px; line-height: 18px; color: var(--muted); min-height: 18px; }
 .line__k { font: 600 10px/1 var(--sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
 .line__sep { width: 5px; height: 5px; border-radius: 50%; background: var(--faint); align-self: center; }
 .line--agent .line__sep { background: var(--accent); }
@@ -142,17 +142,40 @@ a { color: inherit; }
 .line--gpu { margin-top: 6px; font-size: 12.5px; color: var(--muted); max-width: 38ch; }
 .fine { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); max-width: 36ch; text-shadow: 0 2px 14px #000; }
 
-.deck { margin-top: 10px; display: flex; align-items: flex-start; justify-content: center; gap: 22px; }
-/* every control sits in a well as tall as the Talk ring, so circles share one centre line and labels one baseline */
-.deck > .ctl > .orb { margin: calc((var(--ring) - 52px) / 2) 0; }
-.deck { --ring: 112px; --talk: 68px; }
-.talkwrap { position: relative; width: var(--ring); height: var(--ring); flex: 0 0 auto; }
-.meter { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.meter__src {
-  position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); padding-left: 0.2em;
-  font: 500 7.5px/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); opacity: 0.85;
+/* ---------- v2.2 input meter: a wide glass-cockpit strip (a display, so a rounded rectangle is allowed) ---------- */
+.efis {
+  position: relative; box-sizing: border-box; width: 100%; max-width: 640px; margin-top: 12px;
+  aspect-ratio: 4 / 1; min-height: 84px; max-height: 128px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: 10px;
+  padding: 8px 12px 6px 12px; border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.015) 46%, rgba(255, 255, 255, 0.03)),
+    color-mix(in srgb, var(--enamel) 52%, rgba(0, 0, 0, 0.38));
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.35), inset 0 0 22px rgba(0, 0, 0, 0.25), 0 12px 34px rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%);
+  transition: border-color 0.3s ease;
 }
-.talkwrap[data-src="call"] .meter__src, .talkwrap[data-src="test"] .meter__src, .talkwrap[data-src="take"] .meter__src { color: var(--ink); opacity: 1; }
+/* a faint specular sweep across the top edge of the glass */
+.efis::before { content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent); }
+.efis[data-src="call"], .efis[data-src="test"], .efis[data-src="take"] { border-color: color-mix(in srgb, var(--accent) 38%, rgba(255, 255, 255, 0.1)); }
+.efis .meter { position: static; width: 100%; height: 100%; min-width: 0; display: block; }
+.efis__read { margin: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 1px 0 3px 10px; border-left: 1px solid rgba(255, 255, 255, 0.1); min-width: 60px; text-align: left; }
+.efis__cell { display: flex; flex-direction: column; gap: 1px; }
+.efis__read dt { font: 600 7.5px/1 var(--sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.efis__u { letter-spacing: 0.1em; opacity: 0.85; }
+.efis__read dd { margin: 0; font: 500 12px/1.15 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.efis__cell--state dd { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.efis[data-src="call"] .efis__cell--state dd, .efis[data-src="test"] .efis__cell--state dd, .efis[data-src="take"] .efis__cell--state dd { color: var(--accent); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .efis { background: color-mix(in srgb, var(--enamel) 88%, #000); } }
+
+.deck { margin-top: 12px; display: flex; align-items: flex-start; justify-content: center; gap: 28px; }
+/* every control sits in a well as tall as the Talk cluster, so circles share one centre line and labels one baseline */
+.deck > .ctl > .orb { width: 46px; height: 46px; margin: calc((var(--ring) - 46px) / 2) 0; }
+.deck > .ctl > .orb svg { width: 20px; height: 20px; }
+.deck { --talk: 56px; --ring: 66px; }
+.talkwrap { position: relative; width: var(--ring); height: var(--ring); flex: 0 0 auto; }
 /* Talk: a compact machined cap, same finish as the others, slightly larger; one accent lamp; no printed text */
 .talk {
   position: absolute; left: 50%; top: 50%; width: var(--talk); height: var(--talk); margin: calc(var(--talk) / -2) 0 0 calc(var(--talk) / -2);
@@ -166,7 +189,7 @@ a { color: inherit; }
 .talk:hover:not(:disabled) { border-color: color-mix(in srgb, var(--metal-hi) 50%, transparent); }
 /* the lamp: a 7px jewel set into the cap at twelve o'clock (Braun's indicator dot) */
 .talk__lamp {
-  position: absolute; left: 50%; top: 11px; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%;
+  position: absolute; left: 50%; top: 9px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%;
   background: color-mix(in srgb, var(--accent) 22%, #0b0b0b);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.08);
   transition: background 0.2s ease, box-shadow 0.2s ease;
@@ -330,7 +353,8 @@ a { color: inherit; }
 
 /* ---------- Mobile tightening ---------- */
 @media (max-height: 760px) {
-  .deck { --ring: 104px; --talk: 64px; }
+  .deck { --ring: 62px; --talk: 52px; }
+  .efis { min-height: 78px; margin-top: 10px; }
   .stats .gauge canvas { width: 72px; height: 72px; }
 }
 @media (max-width: 360px) {
@@ -345,7 +369,9 @@ a { color: inherit; }
   .stage[data-sheet="settings"] .top__ctl, .stage[data-sheet="takes"] .top__ctl { visibility: hidden; }
   .stats { right: auto; width: 380px; top: calc(92px + var(--sa-t)); left: calc(24px + var(--sa-l)); }
   .console { bottom: calc(40px + var(--sa-b)); }
-  .deck { --ring: 124px; --talk: 76px; gap: 30px; }
+  .deck { --ring: 72px; --talk: 62px; gap: 34px; }
+  .efis { max-height: 136px; }
+  .line--agent { font-size: 17px; line-height: 24px; }
   .top { padding-left: calc(28px + var(--sa-l)); padding-right: calc(24px + var(--sa-r)); padding-top: calc(20px + var(--sa-t)); }
 }
 

@@ -164,6 +164,8 @@
     lost: "Connection lost. Tap Talk again.",
     micFailed: "The microphone stopped responding. Try again.",
     unavailable: "Voice is unavailable right now.",
+    signin: "Sign in required",
+    secure: "Couldn't start a secure session",
   };
   var snap = { state: "idle", muted: false, canMute: false, error: "", micBlocked: false };
   var ctl = { epoch: 0, conv: null, connectTimer: 0, lastMode: "listening", lostEarly: false, cut: false, voiceAtStart: null };
@@ -284,10 +286,18 @@
     ctl.connectTimer = setTimeout(function () { if (current()) teardown({ state: "error", error: COPY.connect }); }, CONNECT_TIMEOUT);
     var tts = ttsOverrides();
     ctl.voiceAtStart = JSON.stringify(S.voice);
-    loadSdk().then(function (Conversation) {
+    Promise.all([loadSdk(), sessionAuth()]).then(function (res) {
+      var Conversation = res[0], auth = res[1];
       if (!current()) return null;
+      if (auth.signin) {
+        // The auth gate answered 401: say so, then reload so the gate's sign-in page takes over.
+        teardown({ state: "error", error: COPY.signin });
+        setTimeout(function () { location.reload(); }, 1200);
+        return null;
+      }
+      if (auth.error) { teardown({ state: "error", error: COPY.secure }); return null; }
+      st.auth = auth.signedUrl ? "signed url" : "agent id";
       var opts = {
-        agentId: AGENT_ID,
         connectionType: "websocket",
         libsampleratePath: LIBSAMPLERATE_PATH,
         onConnect: guard(function (info) { st.conn = "connected"; st.startedAt = Date.now(); if (info && info.conversationId) st.convId = info.conversationId; if (DEV) console.info("[hark] connected"); }),
@@ -323,6 +333,7 @@
           if (snap.state === "speaking") set({ state: "listening" });
         }),
       };
+      if (auth.signedUrl) opts.signedUrl = auth.signedUrl; else opts.agentId = AGENT_ID;
       if (tts) opts.overrides = { tts: tts };
       if (S.source.inputId) opts.inputDeviceId = S.source.inputId;
       if (S.source.outputId && sinkSupported()) opts.outputDeviceId = S.source.outputId;
@@ -346,6 +357,30 @@
       if (err && err.sdkLoadFailed) { teardown({ state: "error", error: COPY.unavailable }); return; }
       teardown(startError(err));
     });
+  }
+  /* v2.2: a private deploy puts an auth gate in front of the app and serves a short-lived ElevenLabs signed URL at
+     ./api/hark-signed-url. 200 JSON {signed_url: "wss://..."} -> start with it. 401 -> "Sign in required", then reload
+     so the gate's sign-in page takes over. Any other outcome (404, network error, timeout, non-JSON, no signed_url):
+     only on the public GitHub Pages host may the call fall back to the public agentId; on every other host the
+     signed URL is required and the call stops with "Couldn't start a secure session". Never cached (sw.js skips /api/). */
+  var SIGNED_URL_PATH = "./api/hark-signed-url", SIGNED_URL_TIMEOUT = 5000, PUBLIC_HOST = "yaakov-source.github.io";
+  function sessionAuth() {
+    var fail = location.hostname === PUBLIC_HOST ? { agentId: AGENT_ID } : { error: true };
+    if (!window.fetch) return Promise.resolve(fail);
+    var ac = window.AbortController ? new AbortController() : null, timer = 0;
+    var timeout = new Promise(function (resolve) { timer = setTimeout(function () { if (ac) ac.abort(); resolve(fail); }, SIGNED_URL_TIMEOUT); });
+    var req = fetch(SIGNED_URL_PATH, { credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" }, signal: ac ? ac.signal : undefined })
+      .then(function (r) {
+        if (r.status === 401) return { signin: true };
+        if (r.status !== 200) return fail;
+        return r.text().then(function (t) {
+          var j = null; try { j = JSON.parse(t); } catch (e) { return fail; }
+          var u = j && typeof j.signed_url === "string" ? j.signed_url : "";
+          return /^wss:\/\//.test(u) ? { signedUrl: u } : fail;
+        });
+      })
+      .catch(function () { return fail; });
+    return Promise.race([req, timeout]).then(function (a) { clearTimeout(timer); if (DEV) console.info("[hark] auth", a.signin ? "401" : a.signedUrl ? "signed url" : a.error ? "failed (no fallback on this host)" : "agent id"); return a; });
   }
   function endCall() {
     if (!isActive(snap.state) && !ctl.conv) return;
@@ -547,6 +582,9 @@
   var tdIn = null, tdOut = null, gate = { open: false, lastLoud: 0 };
   var raf = 0, lastPitch = 0, lastRead = 0, idleFrames = 0;
   var takeTd = null, specRawIn = null, specRawOut = null;
+  var efisEl = $("efis"), roIn = $("roIn"), roOut = $("roOut"), lastMeter = 0, lastRO = 0;
+  var reduceMQ = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
+  function fmtRO(v) { return v <= -119 ? "-inf" : (v < 0 && v > -0.05 ? "0.0" : v.toFixed(1)); }
 
   function inputSource() {
     if (ctl.conv && isLive(snap.state)) return "call";
@@ -619,10 +657,24 @@
     }
 
     var active = src !== "off";
-    meter.draw({ bands: shown, db: src === "take" ? st.outDb : st.inDb, peakDb: src === "take" ? st.outPk : st.inPk, active: active, gate: gate.open && !muted, muted: muted });
+    // v2.2 strip: the input line is the SDK's own input analyser in a call (never a second capture), the mic-test
+    // analyser outside one, or the take's output while previewing. Reduced motion: ~8 fps and a smoothed line.
+    var reduced = S.visual.reduced || reduceMQ.matches;
+    if (!reduced || now - lastMeter > 120 || !active) {
+      lastMeter = now;
+      meter.draw({ bands: shown, db: src === "take" ? st.outDb : st.inDb, peakDb: src === "take" ? st.outPk : st.inPk, active: active, gate: gate.open && !muted, muted: muted,
+        td: src === "take" ? (outAn ? tdOut : null) : (inAn ? tdIn : null), tdOut: src === "call" && outAn ? tdOut : null, gain: gainV, reduced: reduced });
+    }
     var label = src === "call" ? (muted ? "Muted" : "Mic") : src === "test" ? "Test" : src === "take" ? "Take" : "Off";
-    if (meterSrcEl.textContent !== label) meterSrcEl.textContent = label;
+    if (meterSrcEl.textContent !== label) { meterSrcEl.textContent = label; efisEl.setAttribute("aria-label", "Input meter, " + label); }
+    if (now - lastRO > 100 || !active) {
+      lastRO = now;
+      var tIn = src === "take" || src === "off" ? "-inf" : fmtRO(st.inDb), tOut = fmtRO(st.outDb);
+      if (roIn.textContent !== tIn) roIn.textContent = tIn;
+      if (roOut.textContent !== tOut) roOut.textContent = tOut;
+    }
     talkWrap.setAttribute("data-src", src);
+    efisEl.setAttribute("data-src", src);
 
     // fps
     st.frames++;
@@ -660,6 +712,7 @@
       ["Session", live && st.startedAt ? fmtTime(Date.now() - st.startedAt) : "--:--"],
       ["Conv id", st.convId ? st.convId.slice(0, 10) + "\u2026" + st.convId.slice(-4) : "--"],
       ["Agent", "\u2026" + AGENT_ID.slice(-8)],
+      ["Auth", st.auth || "--"],
       ["Voice", voiceName(callVoice)],
       ["Model", MODEL],
       ["Format", OUT_FORMAT],

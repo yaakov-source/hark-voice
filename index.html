@@ -64,6 +64,16 @@
       <p class="line line--you" id="inputLine" data-input="off"><span class="line__k">You</span><span class="line__sep" aria-hidden="true"></span><span id="inputText">Mic off</span></p>
       <p class="line line--gpu" id="gpuNote" role="note" hidden></p>
 
+      <!-- v2.2 input meter: a wide glass instrument strip (a display, not a control), directly above the Talk cluster. -->
+      <div class="efis" id="efis" data-src="off" role="img" aria-label="Input meter">
+        <canvas class="meter" id="meter" aria-hidden="true"></canvas>
+        <dl class="efis__read" aria-hidden="true">
+          <div class="efis__cell"><dt>In <span class="efis__u">dBFS</span></dt><dd id="roIn">-inf</dd></div>
+          <div class="efis__cell"><dt>Out <span class="efis__u">dBFS</span></dt><dd id="roOut">-inf</dd></div>
+          <div class="efis__cell efis__cell--state"><dt>Src</dt><dd id="meterSrc">Off</dd></div>
+        </dl>
+      </div>
+
       <div class="deck">
         <div class="ctl">
           <button type="button" class="orb" id="muteBtn" aria-pressed="false" aria-label="Mute microphone" disabled>
@@ -75,11 +85,9 @@
 
         <div class="ctl ctl--talk">
           <div class="talkwrap" id="talkWrap">
-            <canvas class="meter" id="meter" aria-hidden="true"></canvas>
             <button type="button" class="talk" id="talkBtn" aria-label="Talk to Hark" disabled data-needs-js>
               <span class="talk__lamp" aria-hidden="true"></span>
             </button>
-            <span class="meter__src" id="meterSrc" aria-hidden="true">Off</span>
           </div>
           <span class="ctl__label talk__label" aria-hidden="true"><span id="talkLabel">Talk</span><span class="talk__sub" id="talkSub">to Hark</span></span>
         </div>
